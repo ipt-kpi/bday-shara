@@ -31,7 +31,8 @@ impl fmt::Display for Prize {
                     f,
                     "{}\n\
                     <b>Предмет</b>: {}\n\
-                    <b>{}</b> [Кількість шар - {}]",
+                    <b>{}</b> [Кількість шар - {}]\n\
+                    <b>Розігрується серед вашої групи</b>",
                     self.teacher, self.subject, self.prize_type, self.count
                 )
             }
