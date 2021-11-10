@@ -92,3 +92,49 @@ BEGIN
         END IF;
     END IF;
 END $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_prizes(chat_id_t BIGINT)
+    RETURNS TABLE(
+                     id INTEGER,
+                     teacher CHARACTER VARYING,
+                     subject CHARACTER VARYING,
+                     prize_type CHARACTER VARYING,
+                     count SMALLINT,
+                     groups TEXT,
+                     selected BOOLEAN
+                 )
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    student_id_t int;
+    group_code_t int;
+BEGIN
+    SELECT student.id, student.group_code INTO student_id_t, group_code_t FROM student WHERE chat_id = chat_id_t;
+    RETURN QUERY
+        SELECT prizes.id, prizes.teacher, prizes.subject, prizes.prize_type, prizes.count, prizes.groups, (prize_student.student IS NOT NULL) AS selected FROM
+            (SELECT prize.id AS id, teacher.name AS teacher, subject.name AS subject, prize_type.name AS prize_type, prize.count, null AS groups
+             FROM prize_group
+                      JOIN prize ON prize.id = prize_group.prize
+                      JOIN teacher ON prize.teacher = teacher.id
+                      JOIN subject ON prize.subject = subject.id
+                      JOIN prize_type ON prize.type = prize_type.id
+             WHERE group_code = group_code_t
+             UNION
+             SELECT prize.id, prize.teacher, prize.subject, prize.prize_type, prize.count, string_agg(distinct group_code.name, ', ' order by group_code.name) as groups
+             FROM (
+                      SELECT prize.id AS id, teacher.name AS teacher, subject.name AS subject, prize_type.name AS prize_type, prize.count, group_code
+                      FROM prize_multiple_group
+                               JOIN prize ON prize.id = prize_multiple_group.prize
+                               JOIN teacher ON prize.teacher = teacher.id
+                               JOIN subject ON prize.subject = subject.id
+                               JOIN prize_type ON prize.type = prize_type.id
+                      WHERE prize.id IN (SELECT prize FROM prize_multiple_group WHERE group_code = group_code_t)
+                  ) as "prize"
+                      JOIN group_code ON group_code.id = prize.group_code
+             GROUP BY prize.id, prize.teacher, prize.subject, prize.prize_type, prize.count) AS prizes
+                LEFT JOIN prize_student ON prize_student.prize = prizes.id AND prize_student.student = student_id_t
+        ORDER BY id;
+    RETURN;
+END
+$$;
