@@ -77,31 +77,27 @@ async fn receive_group(
         );
         cx.answer(format!(
             "<b>Підсумкові дані:</b> \n\
-                                        Прізвище: {} \n\
-                                        Ім'я: {} \n\
-                                        По батькові: {} \n\
-                                        Група: {}",
+            Прізвище: {} \n\
+            Ім'я: {} \n\
+            По батькові: {} \n\
+            Група: {}",
             state.last_name, state.first_name, state.patronymic, ans,
         ))
         .parse_mode(ParseMode::Html)
         .await?;
         let prizes = reject_result!(
             cx,
-            database.get_prizes(group_code).await,
+            database.get_prizes(cx.chat_id()).await,
             "Database error while get prizes",
             "Помилка при отриманні шар",
             Dialogue::ReceiveGroup(state)
         );
-        let (message, keyboard) = reject_option!(
-            cx,
-            Keyboard::global().get_prize_keyboard(prizes).await,
-            "Не вдалося знайти шари на обрану групу",
-            Dialogue::ReceiveGroup(state)
-        );
-        cx.answer(message)
-            .parse_mode(ParseMode::Html)
-            .reply_markup(keyboard)
-            .await?;
+        let mut message = cx.answer(format!("{}", prizes))
+            .parse_mode(ParseMode::Html);
+        if let Some(keyboard) = Keyboard::global().get_prize_keyboard(prizes).await {
+            message = message.reply_markup(keyboard)
+        }
+        message.await?;
         next(Dialogue::Wait(WaitState))
     } else {
         cx.answer("Неправильно введено групу, спробуйте ще раз!")

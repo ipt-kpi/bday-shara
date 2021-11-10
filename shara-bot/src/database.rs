@@ -64,16 +64,9 @@ impl Database<Json> {
             .map(|optional_row| optional_row.map(|row| row.get(0)))
     }
 
-    pub async fn get_prizes(&self, group_code: i32) -> Result<Prizes> {
-        sqlx::query_as::<_, Prize>("
-        SELECT prize.id, teacher.name AS teacher, subject.name AS subject, prize_type.name AS prize_type, count FROM prize_group
-        JOIN prize ON prize.id = prize_group.prize
-        JOIN teacher ON prize.teacher = teacher.id
-        JOIN subject ON prize.subject = subject.id
-        JOIN prize_type ON prize.type = prize_type.id
-        WHERE group_code = $1
-        ")
-            .bind(group_code)
+    pub async fn get_prizes(&self, chat_id: i64) -> Result<Prizes> {
+        sqlx::query_as::<_, Prize>(r#"SELECT * FROM get_prizes($1)"#)
+            .bind(chat_id)
             .fetch_all(&self.pool)
             .await
             .map_err(|error| anyhow::anyhow!(error))

@@ -33,27 +33,19 @@ impl Keyboard {
     pub async fn get_prize_keyboard(
         &self,
         prizes: Prizes,
-    ) -> Option<(String, InlineKeyboardMarkup)> {
+    ) -> Option<InlineKeyboardMarkup> {
         if prizes.0.is_empty() {
             return None;
         }
-        let prizes = prizes.get_map();
-
-        let message = prizes
-            .values()
-            .enumerate()
-            .map(|(number, prize)| format!("❌ Шара №{}: {}", number + 1, prize))
-            .collect::<Vec<_>>()
-            .join("\n");
-        let keyboard = prizes.keys().enumerate().fold(
+        let keyboard = prizes.0.iter().enumerate().fold(
             InlineKeyboardMarkup::default(),
-            |keyboard, (number, id)| {
+            |keyboard, (number, prize)| {
                 keyboard.append_row(vec![InlineKeyboardButton::callback(
                     format!("Шара №{}", number + 1),
-                    format!("{}:{}", id, number),
+                    format!("{}", prize.id),
                 )])
             },
         );
-        Some((message, keyboard))
+        Some(keyboard)
     }
 }
