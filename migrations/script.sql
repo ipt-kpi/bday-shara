@@ -138,3 +138,26 @@ BEGIN
     RETURN;
 END
 $$;
+
+CREATE TYPE role AS ENUM ('user', 'admin');
+
+CREATE TABLE IF NOT EXISTS users(
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(16) NOT NULL,
+    email VARCHAR(64) NOT NULL,
+    password VARCHAR(60) NOT NULL,
+    role role DEFAULT 'user'::role
+);
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+SET TIMEZONE='Europe/Kiev';
+
+CREATE TABLE IF NOT EXISTS refresh_sessions(
+    id SERIAL PRIMARY KEY,
+    user_id SERIAL REFERENCES users(id) ON DELETE CASCADE,
+    refresh_token UUID NOT NULL DEFAULT uuid_generate_v4(),
+    fingerprint VARCHAR(200) NOT NULL,
+    expires_in BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
